@@ -17,22 +17,42 @@ const PlayMatch = () => {
   const [roomCode, setRoomCode] = useState("")
 
   const createMutation = useMutation({
-    mutationFn: createMatch,
-    onSuccess: (data) => {
+  mutationFn: createMatch,
+  onSuccess: (data) => {
 
-      navigate(`/lobby/${data.roomId}`)
+    const player = data.players[0]
 
-    }
-  })
+    navigate(`/lobby/${data.gameId}`, {
+      state: {
+        board: player.board,
+        markedNumbers: player.markedNumbers
+      }
+    })
 
-  const joinMutation = useMutation({
-    mutationFn: joinMatch,
-    onSuccess: (data) => {
+  }
+})
 
-      navigate(`/lobby/${data.roomId}`)
+const joinMutation = useMutation({
+  mutationFn: joinMatch,
+  onSuccess: (data) => {
 
-    }
-  })
+    console.log("Join response:", data)
+
+    const player = data.players[1];
+    console.log("Joined player data:", player)
+
+    navigate(`/lobby/${data.gameId}`, {
+      state: {
+        board: player.board,
+        markedNumbers: player.markedNumbers
+      }
+    })
+
+  },
+  onError:(err)=>{
+    console.log("Join error",err)
+  }
+})
 
   const handleCreateMatch = () => {
 

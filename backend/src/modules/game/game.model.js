@@ -14,11 +14,23 @@ const gameSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
         },
+        board: {
+          type: [Number],
+          default: [],
+        },
+        markedNumbers: {
+          type: [Number],
+          default: [],
+        },
       },
     ],
     ifFulled: {
       type: Boolean,
       default: false,
+    },
+    numberPool: {
+      type: [Number],
+      default: [],
     },
 
     winner: {

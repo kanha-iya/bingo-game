@@ -17,7 +17,7 @@ export const joingame = async (req, res) => {
       req.user.id
     );
 
-    res.json(game);
+    res.status(200).json({ success: true, data: game , message: "game joined successfully"} );
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

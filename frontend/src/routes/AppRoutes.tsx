@@ -6,6 +6,7 @@ import Register from "@/pages/auth/Register";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import ProtectedRoute from "@/components/common/ProtectedRoutes";
 import PlayMatch from "@/pages/games/PlayMatch";
+import Subscription from "@/pages/subscription/Subscription";
 import MatchLobby from "@/pages/games/MatchLobby";
 
 const AppRoutes = () => {
@@ -33,13 +34,21 @@ const AppRoutes = () => {
         }
       />
       <Route
-  path="/lobby/:roomId"
+  path="/lobby/:gameId"
   element={
     <ProtectedRoute>
       <MatchLobby />
     </ProtectedRoute>
   }
 />
+<Route
+        path="/subscription"
+        element={
+          <ProtectedRoute>
+            <Subscription />
+          </ProtectedRoute>
+        }
+      />
 <Route path="*" element={<Login />} />
     </Routes>
 

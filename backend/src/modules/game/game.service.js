@@ -15,6 +15,8 @@ export const createGame = async (userId) => {
     players: [
       {
         userId,
+        board: generateBoard(), 
+        markedNumbers: [],
       },
     ],
   });
@@ -44,6 +46,8 @@ export const joinGame = async (gameId, userId) => {
 
   game.players.push({
     userId,
+    board: generateBoard(),
+    markedNumbers: [],
   });
 
   if (game.players.length === 2) {
