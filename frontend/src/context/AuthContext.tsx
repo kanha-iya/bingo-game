@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 interface User {
   id: string;
   email: string;
+  username?: string;
 }
 
 interface AuthContextType {
@@ -11,6 +12,7 @@ interface AuthContextType {
   loading: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
+  updateUser: (partial: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -27,7 +29,7 @@ export const AuthProvider = ({ children }: any) => {
     const storedToken = localStorage.getItem("token");
 
     if (storedUser && storedToken) {
-        console.log("Found stored user and token:", JSON.parse(storedUser), storedToken);
+        //console.log("Found stored user and token:", JSON.parse(storedUser), storedToken);
       setUser(JSON.parse(storedUser));
       setToken(storedToken);
     }
@@ -54,8 +56,19 @@ export const AuthProvider = ({ children }: any) => {
     setToken(null);
   };
 
+  const updateUser = (partial: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...partial };
+      localStorage.setItem("user", JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, loading, login, logout, updateUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -8,6 +8,8 @@ import ProtectedRoute from "@/components/common/ProtectedRoutes";
 import PlayMatch from "@/pages/games/PlayMatch";
 import Subscription from "@/pages/subscription/Subscription";
 import MatchLobby from "@/pages/games/MatchLobby";
+import MatchHistory from "@/pages/history/MatchHistory";
+import Settings from "@/pages/settings/Settings";
 
 const AppRoutes = () => {
   return (
@@ -41,7 +43,7 @@ const AppRoutes = () => {
     </ProtectedRoute>
   }
 />
-<Route
+      <Route
         path="/subscription"
         element={
           <ProtectedRoute>
@@ -49,7 +51,26 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-<Route path="*" element={<Login />} />
+
+      <Route
+        path="/history"
+        element={
+          <ProtectedRoute>
+            <MatchHistory />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="*" element={<Login />} />
     </Routes>
 
   );

@@ -1,4 +1,5 @@
 import Game from "./game.model.js";
+import User from "../user/user.model.js";
 
 // Generate random Bingo board
 const generateBoard = () => {
@@ -122,4 +123,22 @@ export const swapNumbers = async (gameId, userId) => {
   return {
     board,
   };
+};
+
+export const persistGameResult = async (gameIdStr, winnerEmail, calledNumbers) => {
+  const winnerUser = await User.findOne({ email: winnerEmail });
+  const gameDoc = await Game.findOne({ gameId: gameIdStr });
+
+  if (!gameDoc || !winnerUser) {
+    return;
+  }
+
+  gameDoc.winner = winnerUser._id;
+  gameDoc.status = "finished";
+
+  if (Array.isArray(calledNumbers) && calledNumbers.length > 0) {
+    gameDoc.numberPool = calledNumbers;
+  }
+
+  await gameDoc.save();
 };

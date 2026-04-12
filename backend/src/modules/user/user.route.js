@@ -26,4 +26,10 @@ router.get(
   UserController.getMatchStats
 );
 
+router.get(
+  "/match-history",
+  verifyToken,
+  UserController.getMatchHistory
+);
+
 export default router;

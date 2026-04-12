@@ -1,3 +1,5 @@
+import { persistGameResult as saveGameResult } from "../modules/game/game.service.js";
+
 const countCompletedLines = (board, calledNumbers) => {
   const called = new Set(calledNumbers);
   const SIZE = 5;
@@ -20,7 +22,7 @@ const countCompletedLines = (board, calledNumbers) => {
 };
 
 const checkBingo = (board, calledNumbers) => {
-  return countCompletedLines(board, calledNumbers) >= 5;
+  return countCompletedLines(board, calledNumbers) >= 3;
 };
 
 export const socketHandler = (io) => {
@@ -138,6 +140,9 @@ export const socketHandler = (io) => {
           io.to(gameId).emit("bingoWinner", { winner: playerId });
           game.started = false;
           console.log(`${playerId} won game ${gameId}`);
+          saveGameResult(gameId, playerId, [...game.calledNumbers]).catch(
+            (err) => console.error("Failed to persist game result:", err)
+          );
           return;
         }
       }

@@ -52,6 +52,7 @@ export const getMatchStats = async (userId) => {
 
   const wins = await game.countDocuments({
     winner: userId,
+    status: "finished",
   });
 
   const losses = totalMatches - wins;
@@ -61,4 +62,57 @@ export const getMatchStats = async (userId) => {
     wins,
     losses,
   };
+};
+
+export const getMatchHistory = async (userId) => {
+  const matches = await game
+    .find({ "players.userId": userId })
+    .sort({ updatedAt: -1 })
+    .limit(50)
+    .populate("winner", "email username")
+    .populate("players.userId", "email username")
+    .lean();
+
+  return matches.map((m) => {
+    const opponents = m.players
+      .filter(
+        (p) =>
+          p.userId &&
+          p.userId._id &&
+          p.userId._id.toString() !== userId.toString()
+      )
+      .map((p) => ({
+        email: p.userId.email,
+        username: p.userId.username,
+      }));
+
+    let result = "playing";
+
+    if (m.status === "waiting") {
+      result = "waiting";
+    } else if (m.status === "playing") {
+      result = "playing";
+    } else if (m.status === "finished") {
+      if (!m.winner) {
+        result = "finished";
+      } else if (m.winner._id.toString() === userId.toString()) {
+        result = "win";
+      } else {
+        result = "loss";
+      }
+    }
+
+    return {
+      gameId: m.gameId,
+      status: m.status,
+      result,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt,
+      winner: m.winner
+        ? { email: m.winner.email, username: m.winner.username }
+        : null,
+      opponents,
+      calledNumbers: m.numberPool || [],
+    };
+  });
 };

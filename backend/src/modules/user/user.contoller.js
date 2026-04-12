@@ -68,3 +68,18 @@ export const getMatchStats = async (req, res) => {
     });
   }
 };
+
+export const getMatchHistory = async (req, res) => {
+  try {
+    const history = await UserService.getMatchHistory(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      data: history,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
