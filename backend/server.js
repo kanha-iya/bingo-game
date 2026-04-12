@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { Server } from "socket.io";
 import app from "./app.js";
 import connectDB from "./src/config/db.js";
+import { createSocketIoCorsConfig } from "./src/config/cors.js";
 
 dotenv.config();
 
@@ -15,10 +16,7 @@ const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 
 export const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    methods: ["GET", "POST"]
-  }
+  cors: createSocketIoCorsConfig(),
 });
 
 /* Initialize socket logic */
