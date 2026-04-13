@@ -58,8 +58,10 @@ const MatchLobby = () => {
     }
 
     const emitJoinGame = () => {
+      const gid = String(gameId ?? "").trim();
+      if (!gid) return;
       socket.emit("joinGame", {
-        gameId,
+        gameId: gid,
         userId: user.email,
         board,
       });
@@ -140,6 +142,12 @@ const MatchLobby = () => {
     socket.on("errorMessage", handleErrorMessage);
     socket.on("roomFull", handleRoomFull);
 
+    const handleConnectError = () => {
+      setStatusMessage("Lost connection to game server. Reconnecting…");
+    };
+
+    socket.on("connect_error", handleConnectError);
+
     if (!socket.connected) {
       socket.connect();
     } else {
@@ -157,16 +165,18 @@ const MatchLobby = () => {
       socket.off("bingoWinner", handleBingoWinner);
       socket.off("errorMessage", handleErrorMessage);
       socket.off("roomFull", handleRoomFull);
+      socket.off("connect_error", handleConnectError);
     };
   }, [gameId, user?.email, navigate]);
 
   const handleStartGame = () => {
-    if (!gameId) return;
+    const gid = String(gameId ?? "").trim();
+    if (!gid) return;
     if (players.length < 2) {
       alert("Need 2 players to start the game");
       return;
     }
-    socket.emit("startGame", { gameId });
+    socket.emit("startGame", { gameId: gid });
   };
 
   const handleCallNumber = () => {
@@ -190,7 +200,7 @@ const MatchLobby = () => {
     }
 
     socket.emit("callNumber", {
-      gameId,
+      gameId: String(gameId ?? "").trim(),
       number: num,
       userId: user.email,
     });
@@ -206,8 +216,8 @@ const MatchLobby = () => {
             Game lobby
           </h2>
           <p className="mt-1 text-sm text-zinc-600 sm:text-base">
-            Share the room code so a second player can join, then take turns
-            calling numbers.
+            Share the room code so a second player can join. The match starts
+            automatically when both players are connected.
           </p>
         </div>
 
@@ -263,13 +273,20 @@ const MatchLobby = () => {
         )}
 
         {players.length === 2 && !gameStarted && (
-          <Button
-            type="button"
-            className="h-11 w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:w-auto sm:px-8"
-            onClick={handleStartGame}
-          >
-            Start match
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <p className="text-sm text-zinc-600">
+              Starting match… If nothing happens, both players should refresh
+              this page (game state lives on the server).
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 shrink-0 border-zinc-900"
+              onClick={handleStartGame}
+            >
+              Start match (retry)
+            </Button>
+          </div>
         )}
 
         {gameStarted && (

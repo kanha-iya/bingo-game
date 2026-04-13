@@ -14,6 +14,7 @@ function normalizeOrigin(url) {
 
 function parseAllowedList() {
   const raw = process.env.CLIENT_URL || process.env.ALLOWED_ORIGINS || "";
+  console.log("raw", raw);  
   return raw
     .split(",")
     .map((s) => normalizeOrigin(s))

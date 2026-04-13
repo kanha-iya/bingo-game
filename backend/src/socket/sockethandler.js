@@ -25,6 +25,14 @@ const checkBingo = (board, calledNumbers) => {
   return countCompletedLines(board, calledNumbers) >= 3;
 };
 
+/**
+ * In-memory game state: requires all players to use the same Socket.IO server
+ * process. If you run multiple Node instances behind a load balancer, enable
+ * sticky sessions or use @socket.io/redis-adapter so rooms are shared.
+ */
+
+const normalizeGameId = (gameId) => String(gameId ?? "").trim();
+
 export const socketHandler = (io) => {
   const games = {};
   const socketToGame = {};
@@ -36,14 +44,15 @@ export const socketHandler = (io) => {
     console.log("New client connected:", socket.id);
 
     socket.on("joinGame", ({ gameId, userId, board }) => {
-      if (!gameId || !userId) return;
+      const gid = normalizeGameId(gameId);
+      if (!gid || !userId) return;
 
-      socket.join(gameId);
-      socketToGame[socket.id] = gameId;
+      socket.join(gid);
+      socketToGame[socket.id] = gid;
       socketToUser[socket.id] = userId;
 
-      if (!games[gameId]) {
-        games[gameId] = {
+      if (!games[gid]) {
+        games[gid] = {
           players: [],
           boards: {},
           turn: 0,
@@ -52,11 +61,12 @@ export const socketHandler = (io) => {
         };
       }
 
-      const game = games[gameId];
+      const game = games[gid];
       const isExistingPlayer = game.players.includes(userId);
 
       if (!isExistingPlayer && game.players.length >= 2) {
         socket.emit("roomFull", { message: "Game room is full" });
+        socket.leave(gid);
         return;
       }
 
@@ -68,10 +78,10 @@ export const socketHandler = (io) => {
         game.players.push(userId);
       }
 
-      console.log(`User ${userId} joined game ${gameId}`);
+      console.log(`User ${userId} joined game ${gid}`);
       console.log("Players:", game.players);
 
-      io.to(gameId).emit("playersUpdate", game.players);
+      io.to(gid).emit("playersUpdate", game.players);
 
       if (game.started) {
         socket.emit("gameState", {
@@ -82,13 +92,28 @@ export const socketHandler = (io) => {
       }
 
       if (game.players.length === 2) {
-        io.to(gameId).emit("readyToStart");
+        io.to(gid).emit("readyToStart");
+        game.started = true;
+        game.turn = 0;
+        io.to(gid).emit("gameStarted", {
+          turn: game.players[game.turn],
+        });
+        console.log(
+          `Game auto-started in ${gid}, first turn: ${game.players[game.turn]}`
+        );
       }
     });
 
     socket.on("startGame", ({ gameId }) => {
-      const game = games[gameId];
-      if (!game) return;
+      const gid = normalizeGameId(gameId);
+      const game = games[gid];
+      if (!game) {
+        socket.emit("errorMessage", {
+          message:
+            "Game session not found. Refresh the page or rejoin the room. If this persists, the server may have restarted — both players should re-open the lobby.",
+        });
+        return;
+      }
 
       if (game.players.length < 2) {
         socket.emit("errorMessage", { message: "Need 2 players to start" });
@@ -100,16 +125,22 @@ export const socketHandler = (io) => {
       game.started = true;
       game.turn = 0;
 
-      io.to(gameId).emit("gameStarted", {
+      io.to(gid).emit("gameStarted", {
         turn: game.players[game.turn],
       });
 
-      console.log(`Game started in ${gameId}, first turn: ${game.players[game.turn]}`);
+      console.log(`Game started in ${gid}, first turn: ${game.players[game.turn]}`);
     });
 
     socket.on("callNumber", ({ gameId, number, userId }) => {
-      const game = games[gameId];
-      if (!game) return;
+      const gid = normalizeGameId(gameId);
+      const game = games[gid];
+      if (!game) {
+        socket.emit("errorMessage", {
+          message: "Game session not found. Try refreshing the lobby.",
+        });
+        return;
+      }
 
       if (!game.started) {
         socket.emit("errorMessage", { message: "Game has not started yet" });
@@ -132,15 +163,15 @@ export const socketHandler = (io) => {
       }
 
       game.calledNumbers.push(number);
-      io.to(gameId).emit("numberCalled", number);
+      io.to(gid).emit("numberCalled", number);
 
       for (const playerId of game.players) {
         const playerBoard = game.boards[playerId];
         if (playerBoard && checkBingo(playerBoard, game.calledNumbers)) {
-          io.to(gameId).emit("bingoWinner", { winner: playerId });
+          io.to(gid).emit("bingoWinner", { winner: playerId });
           game.started = false;
-          console.log(`${playerId} won game ${gameId}`);
-          saveGameResult(gameId, playerId, [...game.calledNumbers]).catch(
+          console.log(`${playerId} won game ${gid}`);
+          saveGameResult(gid, playerId, [...game.calledNumbers]).catch(
             (err) => console.error("Failed to persist game result:", err)
           );
           return;
@@ -148,37 +179,37 @@ export const socketHandler = (io) => {
       }
 
       game.turn = game.turn === 0 ? 1 : 0;
-      io.to(gameId).emit("turnChanged", {
+      io.to(gid).emit("turnChanged", {
         turn: game.players[game.turn],
       });
 
       console.log(
-        `Number ${number} called by ${userId} in game ${gameId}. Next turn: ${game.players[game.turn]}`
+        `Number ${number} called by ${userId} in game ${gid}. Next turn: ${game.players[game.turn]}`
       );
     });
 
     socket.on("disconnect", () => {
-      const gameId = socketToGame[socket.id];
+      const gid = socketToGame[socket.id];
       const userId = socketToUser[socket.id];
 
-      if (gameId && games[gameId]) {
-        const game = games[gameId];
+      if (gid && games[gid]) {
+        const game = games[gid];
 
         if (!game.started) {
           game.players = game.players.filter((p) => p !== userId);
           delete game.boards[userId];
-          io.to(gameId).emit("playersUpdate", game.players);
+          io.to(gid).emit("playersUpdate", game.players);
         } else {
-          io.to(gameId).emit("errorMessage", {
+          io.to(gid).emit("errorMessage", {
             message: `${userId} disconnected. Waiting for them to reconnect...`,
           });
         }
 
         if (game.players.length === 0) {
-          delete games[gameId];
-          console.log(`Game ${gameId} deleted`);
+          delete games[gid];
+          console.log(`Game ${gid} deleted`);
         } else {
-          console.log(`User ${userId} disconnected from game ${gameId}`);
+          console.log(`User ${userId} disconnected from game ${gid}`);
         }
       }
 
