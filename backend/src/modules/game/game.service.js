@@ -16,6 +16,7 @@ export const createGame = async (userId) => {
     players: [
       {
         userId,
+        usedSwap: false,
         board: generateBoard(), 
         markedNumbers: [],
       },
