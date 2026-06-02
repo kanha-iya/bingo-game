@@ -178,7 +178,7 @@ const InteractiveBingoBoard = ({
 
     if (swapMode) {
       // swap mode — only uncalled cells are swappable
-      if (isCalled) return;
+      // if (isCalled) return;
       if (swapFirst === null) {
         setSwapFirst(idx);
       } else if (swapFirst === idx) {
@@ -224,8 +224,7 @@ const InteractiveBingoBoard = ({
           const isPending = !swapMode && pending === idx;
           const isSwapFirst = swapMode && swapFirst === idx;
           const isSwapTarget = swapMode && !isCalled && swapFirst !== null && swapFirst !== idx;
-          const isClickable = swapMode
-            ? !isCalled
+          const isClickable = swapMode ? true 
             : gameStarted && isMyTurn && !isCalled;
 
           return (
@@ -457,6 +456,12 @@ const MatchLobby = () => {
     setSwapMode(false);
     setPowerUsed(true);
   };
+
+  const handleSwapNumber = () => {
+  if (!gameId || !user?.email || !isMyTurn) return;
+  if (powerUsed) { alert("Power already used!..."); return; }
+  setSwapMode(true);  // let the board UI handle the actual swap
+};
 
   return (
     <DashboardLayout>
@@ -695,7 +700,7 @@ const MatchLobby = () => {
                         ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
                         : "bg-violet-600 hover:bg-violet-700 text-white"
                     )}
-                    onClick={() => !powerUsed && setSwapMode(true)}
+                    onClick={handleSwapNumber}
                   >
                     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4" strokeLinecap="round" strokeLinejoin="round" />
